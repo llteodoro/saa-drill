@@ -1,0 +1,439 @@
+<!-- SAA-C03 Drill — flashcard study app for Lucas -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1420">
+<title>SAA-C03 Drill</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1420; --ink2:#141C2B; --surface:#1A2233; --surface2:#222C40;
+    --line:#2C3752; --text:#E8ECF3; --muted:#8A97AD; --muted2:#5E6C85;
+    --accent:#F5A623; --accent-dim:#7a5a1f;
+    --d1:#E4676B; --d2:#4FC0A0; --d3:#5B9DD9; --d4:#B08BE0; --bridge:#F5A623;
+    --ok:#4FC0A0; --hard:#F5A623; --again:#E4676B;
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1100px 600px at 50% -10%, #17203200, #0E1420 60%),
+      var(--ink);
+    color:var(--text);
+    font-family:"Space Grotesk",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;min-height:100dvh;
+  }
+  .wrap{width:100%;max-width:640px;margin:0 auto;padding:20px 18px 28px;display:flex;flex-direction:column;flex:1;gap:16px}
+
+  /* header */
+  header{display:flex;flex-direction:column;gap:14px}
+  .topline{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .brand{font-weight:700;font-size:19px;letter-spacing:-.02em}
+  .brand small{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-weight:500;font-size:13px;margin-left:2px}
+  .streak{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .streak b{color:var(--accent);font-weight:600}
+
+  .progress{display:flex;flex-direction:column;gap:7px}
+  .bar{height:8px;border-radius:99px;background:var(--ink2);overflow:hidden;position:relative;border:1px solid var(--line)}
+  .bar span{position:absolute;inset:0 100% 0 0;background:linear-gradient(90deg,var(--accent-dim),var(--accent));transition:right .5s cubic-bezier(.2,.7,.2,1)}
+  .barmeta{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+  .barmeta b{color:var(--text);font-weight:600}
+
+  /* filters */
+  .filters{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{
+    appearance:none;border:1px solid var(--line);background:var(--ink2);color:var(--muted);
+    font-family:inherit;font-size:12.5px;font-weight:500;padding:7px 11px;border-radius:99px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,color .15s,background .15s;
+  }
+  .chip:hover{color:var(--text)}
+  .chip .dot{width:8px;height:8px;border-radius:99px;background:currentColor}
+  .chip[aria-pressed="true"]{color:var(--text);background:var(--surface);border-color:var(--muted2)}
+  .chip[data-deck="bridge"][aria-pressed="true"]{border-color:var(--bridge)}
+  .chip[data-deck="d1"][aria-pressed="true"]{border-color:var(--d1)}
+  .chip[data-deck="d2"][aria-pressed="true"]{border-color:var(--d2)}
+  .chip[data-deck="d3"][aria-pressed="true"]{border-color:var(--d3)}
+  .chip[data-deck="d4"][aria-pressed="true"]{border-color:var(--d4)}
+  .chip .c{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted2)}
+
+  /* card */
+  .stage{flex:1;display:flex;align-items:center;perspective:1600px;min-height:340px}
+  .card{
+    width:100%;min-height:340px;position:relative;transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.2,.8,.2,1);cursor:pointer;
+  }
+  .card.flipped{transform:rotateX(180deg)}
+  .face{
+    position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    background:linear-gradient(180deg,var(--surface),var(--ink2));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px 24px;display:flex;flex-direction:column;gap:16px;
+    box-shadow:0 24px 60px -30px #000,0 2px 0 0 #ffffff08 inset;
+  }
+  .back{transform:rotateX(180deg)}
+  .tag{display:inline-flex;align-items:center;gap:7px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);align-self:flex-start}
+  .tag .dot{width:9px;height:9px;border-radius:99px}
+  .kind{margin-left:auto;color:var(--muted2);font-size:11px}
+  .q{font-size:22px;line-height:1.32;font-weight:500;letter-spacing:-.01em}
+  .q .mono,.a .mono{font-family:"IBM Plex Mono",monospace;font-weight:500}
+  .azure{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+  .hint{margin-top:auto;font-size:12.5px;color:var(--muted2);display:flex;align-items:center;gap:8px}
+  .kbd{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px;background:var(--ink)}
+  .a{font-size:20px;line-height:1.4;font-weight:500}
+  .a .lead{color:var(--accent);font-weight:600}
+  .arrow{color:var(--muted2);margin:0 8px;font-family:"IBM Plex Mono",monospace}
+  .note{font-size:14px;line-height:1.5;color:var(--muted);border-top:1px solid var(--line);padding-top:13px}
+  .note b{color:var(--text);font-weight:600}
+  .note.trap b{color:var(--d1)}
+
+  /* rating controls */
+  .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;pointer-events:none}
+  .controls.show{opacity:1;transform:none;pointer-events:auto}
+  .rate{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:inherit;font-weight:600;font-size:14px;padding:14px 10px;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:transform .1s,border-color .15s,background .15s}
+  .rate:active{transform:translateY(1px)}
+  .rate small{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted2);font-weight:500}
+  .rate.again:hover{border-color:var(--again)}
+  .rate.hard:hover{border-color:var(--hard)}
+  .rate.ok:hover{border-color:var(--ok)}
+  .rate .k{color:var(--muted2)}
+
+  /* footer utility */
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .link{background:none;border:none;color:var(--muted2);font-family:"IBM Plex Mono",monospace;font-size:11.5px;cursor:pointer;padding:6px 2px}
+  .link:hover{color:var(--muted)}
+  .done{text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;padding:40px 10px}
+  .done h2{margin:0;font-size:24px;letter-spacing:-.02em}
+  .done p{margin:0;color:var(--muted);font-size:15px;line-height:1.5;max-width:32ch}
+  .ghost{appearance:none;border:1px solid var(--muted2);background:none;color:var(--text);font-family:inherit;font-weight:600;font-size:14px;padding:11px 18px;border-radius:12px;cursor:pointer}
+  .ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+  @media (max-width:420px){
+    .q{font-size:20px}.azure{font-size:23px}.a{font-size:18px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .card,.bar span,.controls{transition:none}
+    .card.flipped{transform:none}
+    .card.flipped .front{display:none}
+    .back{transform:none}
+    .card:not(.flipped) .back{display:none}
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="topline">
+      <div class="brand">SAA-C03 Drill<small>· az→aws</small></div>
+      <div class="streak" id="streak">—</div>
+    </div>
+    <div class="progress">
+      <div class="bar"><span id="barfill"></span></div>
+      <div class="barmeta">
+        <span><b id="mastered">0</b> dominados</span>
+        <span id="poolcount">—</span>
+      </div>
+    </div>
+    <div class="filters" id="filters"></div>
+  </header>
+
+  <div class="stage">
+    <div class="card" id="card" role="button" tabindex="0" aria-label="Virar carta (espaço)">
+      <div class="face front">
+        <div class="tag" id="ftag"><span class="dot"></span><span class="tname"></span><span class="kind"></span></div>
+        <div class="q" id="front"></div>
+        <div class="hint"><span class="kbd">espaço</span> revela · toque na carta</div>
+      </div>
+      <div class="face back">
+        <div class="tag" id="btag"><span class="dot"></span><span class="tname"></span></div>
+        <div class="a" id="back"></div>
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls" id="controls">
+    <button class="rate again" data-r="0"><span>De novo</span><small>reinicia</small><span class="k">1</span></button>
+    <button class="rate hard" data-r="1"><span>Difícil</span><small>repete cedo</small><span class="k">2</span></button>
+    <button class="rate ok" data-r="2"><span>Acertei</span><small>avança</small><span class="k">3</span></button>
+  </div>
+
+  <div class="foot">
+    <button class="link" id="resetbtn">reset progresso</button>
+    <button class="link" id="allbtn">rever dominados</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- Card data ---------------- */
+const DECKS = {
+  bridge:{name:"Bridge Azure→AWS", color:"var(--bridge)"},
+  d1:{name:"D1 · Secure (30%)", color:"var(--d1)"},
+  d2:{name:"D2 · Resilient (26%)", color:"var(--d2)"},
+  d3:{name:"D3 · Performance (24%)", color:"var(--d3)"},
+  d4:{name:"D4 · Cost (20%)", color:"var(--d4)"},
+};
+
+// type: map | concept | scenario. mono flag renders back lead as identifier.
+const CARDS = [
+  // ---------- BRIDGE (Azure -> AWS) ----------
+  {d:"bridge",t:"map",az:"AKS",aws:"EKS",note:"Elastic Kubernetes Service. Managed control plane. Você já opera AKS: o modelo mental é o mesmo, muda IAM (IRSA) e a rede (VPC CNI)."},
+  {d:"bridge",t:"map",az:"Azure VMs",aws:"EC2",note:"Elastic Compute Cloud. A unidade de compute base. Instance types = SKUs."},
+  {d:"bridge",t:"map",az:"Blob Storage",aws:"S3",note:"Object storage. Durabilidade de 11 noves. Base de metade das questões de storage/custo."},
+  {d:"bridge",t:"map",az:"Azure Functions",aws:"Lambda",note:"Serverless, event-driven, timeout máx 15 min. Se a questão diz 'sem gerenciar servidor' e é curto, é Lambda."},
+  {d:"bridge",t:"map",az:"Key Vault",aws:"KMS + Secrets Manager",note:"Pegadinha: Key Vault vira DOIS serviços. KMS = chaves de criptografia. Secrets Manager = segredos com rotação automática."},
+  {d:"bridge",t:"map",az:"Entra ID (Azure AD)",aws:"IAM + IAM Identity Center",note:"IAM = permissões de recurso. Identity Center = SSO/federação. Não é 1:1."},
+  {d:"bridge",t:"map",az:"ARM Templates / Bicep",aws:"CloudFormation",note:"IaC nativo. Você é Terraform, mas SAA cita CloudFormation como o nativo AWS."},
+  {d:"bridge",t:"map",az:"Azure Monitor",aws:"CloudWatch",note:"Métricas, logs, alarmes, dashboards. CloudWatch Logs = Log Analytics."},
+  {d:"bridge",t:"map",az:"VNet",aws:"VPC",note:"Virtual Private Cloud. Subnets, route tables, IGW. A espinha de rede de tudo."},
+  {d:"bridge",t:"map",az:"NSG (Network Security Group)",aws:"Security Group + NACL",note:"Pegadinha central: SG é stateful (nível instância). NACL é stateless (nível subnet). NSG junta os dois conceitos."},
+  {d:"bridge",t:"map",az:"Azure Load Balancer (L4)",aws:"NLB",note:"Network Load Balancer. L4, latência ultrabaixa, IP estático."},
+  {d:"bridge",t:"map",az:"Application Gateway (L7)",aws:"ALB",note:"Application Load Balancer. L7, roteia por path/host, integra WAF."},
+  {d:"bridge",t:"map",az:"Cosmos DB",aws:"DynamoDB",note:"NoSQL gerenciado, serverless, escala horizontal. Single-digit ms."},
+  {d:"bridge",t:"map",az:"Azure SQL",aws:"RDS / Aurora",note:"RDS = relacional gerenciado (MySQL/Postgres/etc). Aurora = a versão AWS-nativa, mais performática."},
+  {d:"bridge",t:"map",az:"Azure Cache for Redis",aws:"ElastiCache",note:"Redis ou Memcached gerenciado. Cache de sessão/query."},
+  {d:"bridge",t:"map",az:"Service Bus",aws:"SQS + SNS",note:"SQS = fila (pull, desacopla). SNS = pub/sub (push, fan-out). Juntos cobrem o Service Bus."},
+  {d:"bridge",t:"map",az:"Azure CDN / Front Door",aws:"CloudFront",note:"CDN de borda. Cacheia conteúdo perto do usuário, reduz latência."},
+  {d:"bridge",t:"map",az:"Container Instances / ACA",aws:"ECS Fargate",note:"Containers sem gerenciar nós. Fargate = o modo serverless do ECS/EKS."},
+  {d:"bridge",t:"map",az:"Container Registry (ACR)",aws:"ECR",note:"Elastic Container Registry. Imagens Docker privadas."},
+  {d:"bridge",t:"map",az:"Traffic Manager",aws:"Route 53",note:"DNS + roteamento (failover, latency, weighted, geo). Também é o registrar."},
+  {d:"bridge",t:"map",az:"ExpressRoute",aws:"Direct Connect",note:"Link dedicado privado on-prem→cloud, fora da internet pública."},
+  {d:"bridge",t:"map",az:"Managed Identity",aws:"IAM Role (instance profile / IRSA)",note:"Credencial sem senha pra recurso. EC2 usa instance profile; EKS usa IRSA."},
+  {d:"bridge",t:"map",az:"Azure Policy",aws:"SCP + AWS Config",note:"SCP (via Organizations) = guardrail de permissão máxima. Config = conformidade/auditoria de estado."},
+  {d:"bridge",t:"map",az:"Azure Bastion",aws:"SSM Session Manager",note:"Acesso a instância sem expor SSH/porta pública. Sem bastion host pra manter."},
+
+  // ---------- D1 SECURE (30%) ----------
+  {d:"d1",t:"concept",q:"Security Group vs NACL — a diferença que a prova ama.",a:"SG é stateful e no nível da instância; NACL é stateless e no nível da subnet.",note:"trap|<b>Stateful</b>: SG lembra a conexão de saída e libera o retorno automático. <b>Stateless</b>: NACL precisa de regra explícita nos dois sentidos (inbound E outbound)."},
+  {d:"d1",t:"concept",q:"Como dar a uma EC2 acesso a um bucket S3 sem chave hardcoded?",a:"IAM Role anexada via instance profile.",note:"Nunca embuta access key em EC2. Role = credencial temporária rotacionada pela AWS. É o least privilege na prática."},
+  {d:"d1",t:"concept",q:"O que é uma SCP (Service Control Policy)?",a:"Guardrail no AWS Organizations que define o teto de permissões de uma conta.",note:"SCP não concede permissão, só limita. Mesmo um admin da conta não passa do que a SCP permite. Clássico pra 'impedir que qualquer conta desligue o CloudTrail'."},
+  {d:"d1",t:"concept",q:"Diferença entre criptografia S3: SSE-S3, SSE-KMS, SSE-C.",a:"SSE-S3 = chave gerida pela AWS. SSE-KMS = chave no KMS (auditável, com política e rotação). SSE-C = você fornece a chave.",note:"Se a questão pede <b>auditoria de uso da chave</b> ou <b>controle de rotação</b> → SSE-KMS."},
+  {d:"d1",t:"concept",q:"CloudTrail vs CloudWatch — não confunda.",a:"CloudTrail registra chamadas de API (quem fez o quê). CloudWatch coleta métricas e logs (o que está acontecendo).",note:"trap|Auditoria e forense → <b>CloudTrail</b>. Performance, alarme, dashboard → <b>CloudWatch</b>."},
+  {d:"d1",t:"concept",q:"Secrets Manager vs Parameter Store — quando cada um?",a:"Secrets Manager quando precisa de rotação automática de credenciais. Parameter Store (SSM) para config/segredos simples e baratos.",note:"Rotação nativa de senha de RDS = Secrets Manager. Guardar uma flag ou string de config = Parameter Store (de graça)."},
+  {d:"d1",t:"concept",q:"Acessar S3 de dentro da VPC sem passar pela internet.",a:"Gateway VPC Endpoint (para S3 e DynamoDB).",note:"Gateway endpoint = grátis, via route table, só S3/DynamoDB. Demais serviços usam Interface Endpoint (PrivateLink, pago)."},
+  {d:"d1",t:"concept",q:"AWS Shield vs WAF.",a:"Shield protege contra DDoS (camadas 3/4). WAF filtra tráfego HTTP (camada 7): SQL injection, XSS, rate limit.",note:"Shield Standard é automático e grátis; Advanced é pago com suporte dedicado. WAF anexa em ALB, CloudFront ou API Gateway."},
+  {d:"d1",t:"concept",q:"Serviço que detecta ameaças analisando logs (VPC Flow, CloudTrail, DNS).",a:"Amazon GuardDuty.",note:"Detecção de ameaça baseada em ML, sem agente. Não confunda com Inspector (vulnerabilidade em EC2/imagem) nem Macie (PII em S3)."},
+  {d:"d1",t:"concept",q:"Acesso temporário entre contas AWS.",a:"STS com AssumeRole (cross-account role).",note:"Nada de criar usuário na outra conta. A role de confiança + STS emite credencial temporária. Base de multi-account seguro."},
+  {d:"d1",t:"scenario",q:"Precisa achar dados sensíveis (PII, cartões) espalhados em buckets S3.",a:"Amazon Macie.",note:"Macie = descoberta de dados sensíveis em S3 via ML. Se a pergunta cita PII + S3, é Macie."},
+  {d:"d1",t:"concept",q:"Onde encaixa o Cognito?",a:"Autenticação de usuários finais de apps web/mobile (user pools) e credenciais temporárias (identity pools).",note:"IAM é pra acesso a recursos AWS. Cognito é pra os USUÁRIOS do seu app fazerem login."},
+
+  // ---------- D2 RESILIENT (26%) ----------
+  {d:"d2",t:"concept",q:"RDS Multi-AZ vs Read Replica — a pegadinha nº1 de resiliência.",a:"Multi-AZ = alta disponibilidade (standby síncrono, failover automático). Read Replica = escala de leitura (assíncrono).",note:"trap|'Sobreviver à queda de uma AZ' → <b>Multi-AZ</b>. 'Leituras sobrecarregando o banco' → <b>Read Replica</b>. Podem coexistir."},
+  {d:"d2",t:"concept",q:"As 4 estratégias de DR, do mais barato/lento ao mais caro/rápido.",a:"Backup & Restore → Pilot Light → Warm Standby → Multi-Site Active/Active.",note:"Quanto menor o RTO/RPO exigido, mais pra direita (e mais caro). A questão te dá RTO/RPO e você escolhe."},
+  {d:"d2",t:"concept",q:"Como manter uma frota de EC2 saudável e no tamanho certo automaticamente?",a:"Auto Scaling Group com health checks + políticas de scaling.",note:"ASG substitui instância que falha no health check e escala por métrica (CPU, requests). Combina com ELB."},
+  {d:"d2",t:"concept",q:"Políticas de roteamento do Route 53 (cite as principais).",a:"Simple, Failover, Latency, Weighted, Geolocation, Multivalue.",note:"Failover = DR ativo/passivo. Latency = manda pro região mais rápida. Weighted = canary/split de tráfego."},
+  {d:"d2",t:"concept",q:"Tornar um bucket S3 resiliente a falha de região inteira.",a:"Cross-Region Replication (CRR).",note:"S3 já é multi-AZ dentro da região (11 noves). CRR replica pra outra região — DR e compliance de residência de dados."},
+  {d:"d2",t:"concept",q:"Como desacoplar produtor e consumidor e absorver picos?",a:"Amazon SQS (fila).",note:"A fila vira buffer: se o consumidor cai ou o pico vem, as mensagens esperam. Base de arquitetura resiliente e elástica."},
+  {d:"d2",t:"concept",q:"DynamoDB em múltiplas regiões com leitura/escrita local.",a:"DynamoDB Global Tables.",note:"Replicação multi-region ativa/ativa gerenciada. Baixa latência global + resiliência regional."},
+  {d:"d2",t:"scenario",q:"App precisa ser resiliente: instância pode morrer a qualquer hora sem perder estado.",a:"Arquitetura stateless + estado externo (DynamoDB/ElastiCache/S3).",note:"Nunca guarde sessão no disco da EC2. Estado fora da instância = qualquer nó pode cair e o ASG substitui sem impacto."},
+
+  // ---------- D3 PERFORMANCE (24%) ----------
+  {d:"d3",t:"scenario",q:"Processar um arquivo assim que ele chega no S3, sem servidor, execução curta.",a:"Lambda (trigger de evento S3).",note:"Event-driven + efêmero + <15min = Lambda. Se fosse processamento longo/contínuo, seria EC2/Fargate/Batch."},
+  {d:"d3",t:"concept",q:"ALB vs NLB — quando cada um?",a:"ALB para HTTP/HTTPS com roteamento por path/host (L7). NLB para TCP/UDP, latência mínima e IP estático (L4).",note:"trap|'Roteia por URL /api vs /app' → ALB. 'Milhões de conexões, IP fixo, menor latência' → NLB."},
+  {d:"d3",t:"concept",q:"Tipos de volume EBS: gp3, io2, st1, sc1 — o mapa rápido.",a:"gp3 = SSD de propósito geral (padrão). io2 = SSD de IOPS alto/consistente. st1 = HDD de throughput. sc1 = HDD frio/barato.",note:"Banco exigente de IOPS → io2. Big data sequencial → st1. Arquivo raramente acessado → sc1."},
+  {d:"d3",t:"concept",q:"Reduzir latência de leituras repetidas no banco.",a:"ElastiCache (Redis/Memcached); para DynamoDB, use DAX.",note:"Cache in-memory na frente do banco. DAX é o cache específico do DynamoDB (microssegundos)."},
+  {d:"d3",t:"concept",q:"Entregar conteúdo estático global com baixa latência.",a:"CloudFront (CDN de borda).",note:"Cacheia em edge locations perto do usuário. Combina com S3 (origem) — padrão de site estático/mídia."},
+  {d:"d3",t:"concept",q:"EFS vs EBS vs S3 — o eixo de decisão.",a:"EBS = bloco, uma instância. EFS = arquivo compartilhado, várias instâncias (NFS). S3 = objeto, via API.",note:"'Vários EC2 lendo o mesmo filesystem' → EFS. 'Disco de uma instância' → EBS. 'Objetos via HTTP' → S3."},
+  {d:"d3",t:"concept",q:"Acelerar upload de usuários distantes pro S3.",a:"S3 Transfer Acceleration.",note:"Usa a rede de edge do CloudFront pra entrar mais rápido no S3. Pra download global é o CloudFront."},
+  {d:"d3",t:"scenario",q:"Ingestão de streaming em tempo real (clickstream, telemetria) em larga escala.",a:"Amazon Kinesis (Data Streams).",note:"Streaming ordenado e escalável. Se a questão fala 'real-time, milhões de eventos, ordem', pensa Kinesis."},
+  {d:"d3",t:"concept",q:"Rodar containers sem gerenciar EC2.",a:"AWS Fargate (com ECS ou EKS).",note:"Serverless de container. Você paga por task, não por nó. 'Sem gerenciar a infra de nós' = Fargate."},
+
+  // ---------- D4 COST (20%) ----------
+  {d:"d4",t:"concept",q:"Os 4 modelos de preço de EC2.",a:"On-Demand (flexível, caro), Reserved (1/3 anos, steady-state), Spot (até 90% off, interrompível), Savings Plans (commit de $/h, flexível).",note:"trap|'Workload 24/7 previsível' → Reserved/Savings Plans. 'Batch tolerante a interrupção' → Spot. 'Imprevisível/curto' → On-Demand."},
+  {d:"d4",t:"scenario",q:"Job de batch que pode ser interrompido e retomado, quer o menor custo.",a:"Spot Instances.",note:"Até 90% mais barato. Só pra carga tolerante a interrupção (a AWS pode retomar a instância com 2 min de aviso)."},
+  {d:"d4",t:"concept",q:"Classes de storage S3, do quente ao frio.",a:"Standard → Intelligent-Tiering → Standard-IA → One Zone-IA → Glacier Instant → Glacier Flexible → Glacier Deep Archive.",note:"IA = acesso infrequente (mais barato guardar, paga pra recuperar). Deep Archive = o mais barato, recuperação em horas."},
+  {d:"d4",t:"scenario",q:"Não sei o padrão de acesso dos objetos e quero otimizar custo automaticamente.",a:"S3 Intelligent-Tiering.",note:"Move objetos entre camadas sozinho conforme o acesso. Quando a questão diz 'padrão de acesso desconhecido/variável', é essa."},
+  {d:"d4",t:"scenario",q:"Arquivo de compliance, acesso 1x por ano, recuperação em 12h ok, custo mínimo.",a:"S3 Glacier Deep Archive.",note:"O storage mais barato da AWS. Se a recuperação precisasse ser em minutos, seria Glacier Instant Retrieval."},
+  {d:"d4",t:"concept",q:"Automatizar a transição de objetos S3 entre classes.",a:"S3 Lifecycle Policies.",note:"Regra: depois de N dias vai pra IA, depois pra Glacier, depois expira. Custo cai sem intervenção manual."},
+  {d:"d4",t:"concept",q:"Reduzir custo de dados saindo da VPC pra S3/DynamoDB.",a:"Gateway VPC Endpoint (evita NAT Gateway).",note:"Tráfego pra S3 via NAT Gateway custa por GB. Gateway endpoint é grátis e tira esse custo de transferência. Pega muita gente."},
+  {d:"d4",t:"concept",q:"Onde ver recomendações de economia, segurança e limites?",a:"AWS Trusted Advisor.",note:"Checks de cost optimization, security, fault tolerance, limits. Cost Explorer = análise/gráfico de gasto. Budgets = alerta de teto."},
+];
+
+/* ---------------- Persistence (localStorage, with in-memory fallback) ---------------- */
+const KEY="saa:v1";
+let mem=null; // fallback se localStorage indisponível (modo privado etc.)
+async function loadState(){
+  try{
+    const r=localStorage.getItem(KEY);
+    if(r) return JSON.parse(r);
+  }catch(e){/* indisponível */}
+  return mem||{prog:{},streakDays:0,lastDay:null};
+}
+async function saveState(s){
+  mem=s;
+  try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){/* fallback em memória */}
+}
+
+/* ---------------- App logic ---------------- */
+let STATE, filter="all", queue=[], current=null, flipped=false;
+const $=s=>document.querySelector(s);
+const cardEl=$("#card"), controlsEl=$("#controls");
+
+function cardId(c){ return c.d+":"+(c.az||c.q).slice(0,40); }
+function box(c){ const p=STATE.prog[cardId(c)]; return p?p.box:0; } // 0 = novo
+function mastered(c){ return box(c)>=5; }
+
+function inFilter(c){
+  if(filter==="all") return true;
+  if(filter==="review") return box(c)>0 && box(c)<3;
+  if(filter==="scenario") return c.t==="scenario";
+  return c.d===filter;
+}
+
+function buildQueue(includeMastered=false){
+  let pool=CARDS.filter(inFilter);
+  if(!includeMastered) pool=pool.filter(c=>!mastered(c));
+  // priority: novos e caixas baixas primeiro, leve shuffle dentro do nível
+  pool.sort((a,b)=> box(a)-box(b) || Math.random()-.5);
+  return pool;
+}
+
+function updateHeader(){
+  const total=CARDS.length;
+  const done=CARDS.filter(mastered).length;
+  $("#mastered").textContent=done;
+  $("#barfill").style.right=(100-Math.round(done/total*100))+"%";
+  const poolAll=CARDS.filter(inFilter).length;
+  const poolLeft=CARDS.filter(c=>inFilter(c)&&!mastered(c)).length;
+  $("#poolcount").textContent=poolLeft+" / "+poolAll+" no filtro";
+  const s=STATE.streakDays||0;
+  $("#streak").textContent="🔥 "+s+(s===1?" dia":" dias");
+}
+
+function renderFilters(){
+  const f=$("#filters");
+  const items=[["all","Tudo",null],["bridge","Bridge","var(--bridge)"],["d1","Secure","var(--d1)"],["d2","Resilient","var(--d2)"],["d3","Perf","var(--d3)"],["d4","Cost","var(--d4)"],["scenario","Cenários",null],["review","Revisar",null]];
+  f.innerHTML="";
+  items.forEach(([k,label,col])=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.dataset.deck=k;
+    b.setAttribute("aria-pressed", filter===k);
+    const cnt=CARDS.filter(c=>{const bk=box(c); if(k==="all")return true; if(k==="review")return bk>0&&bk<3; if(k==="scenario")return c.t==="scenario"; return c.d===k;}).length;
+    b.innerHTML=(col?`<span class="dot" style="background:${col}"></span>`:"")+label+`<span class="c">${cnt}</span>`;
+    b.onclick=()=>{filter=k; startSession();};
+    f.appendChild(b);
+  });
+}
+
+function showCard(c){
+  current=c; flipped=false;
+  cardEl.classList.remove("flipped");
+  controlsEl.classList.remove("show");
+  const deck=DECKS[c.d];
+  // front
+  $("#ftag .dot").style.background=deck.color;
+  $("#ftag .tname").textContent=deck.name;
+  $("#ftag .kind").textContent = c.t==="scenario"?"cenário": c.t==="map"?"az → aws":"conceito";
+  $("#btag .dot").style.background=deck.color;
+  $("#btag .tname").textContent=deck.name;
+  const front=$("#front"), back=$("#back"), note=$("#note");
+  if(c.t==="map"){
+    front.innerHTML=`<div class="azure">${c.az}</div><div style="font-size:14px;color:var(--muted);margin-top:6px">Qual o equivalente na AWS?</div>`;
+    back.innerHTML=`<span class="lead mono">${c.aws}</span>`;
+  }else{
+    front.innerHTML=c.q;
+    back.innerHTML=`<span class="lead">${c.a}</span>`;
+  }
+  const isTrap=(c.note||"").startsWith("trap|");
+  const noteText=(c.note||"").replace(/^trap\|/,"");
+  note.className="note"+(isTrap?" trap":"");
+  note.innerHTML=(isTrap?"⚠ ":"")+noteText;
+}
+
+function flip(){
+  if(!current) return;
+  flipped=!flipped;
+  cardEl.classList.toggle("flipped",flipped);
+  controlsEl.classList.toggle("show",flipped);
+}
+
+async function rate(r){
+  if(!current||!flipped) return;
+  const id=cardId(current);
+  let b=STATE.prog[id]?STATE.prog[id].box:0;
+  if(r===0) b=1;            // de novo
+  else if(r===1) b=Math.max(1,b); // difícil: fica (repete cedo)
+  else b=Math.min(5,b+1);   // acertei: avança
+  STATE.prog[id]={box:b};
+  bumpStreak();
+  await saveState(STATE);
+  // requeue difícil/errado mais pra frente na sessão
+  if(r<2){ queue.push(current); }
+  next();
+}
+
+function bumpStreak(){
+  const today=new Date().toISOString().slice(0,10);
+  if(STATE.lastDay===today) return;
+  const yest=new Date(Date.now()-864e5).toISOString().slice(0,10);
+  STATE.streakDays = (STATE.lastDay===yest)?(STATE.streakDays||0)+1:1;
+  STATE.lastDay=today;
+}
+
+function next(){
+  updateHeader(); renderFilters();
+  if(queue.length===0){ return finish(); }
+  showCard(queue.shift());
+}
+
+function finish(){
+  current=null;
+  cardEl.style.display="none"; controlsEl.style.display="none";
+  const stage=document.querySelector(".stage");
+  const done=CARDS.filter(mastered).length;
+  stage.innerHTML=`<div class="done">
+    <h2>Sessão limpa ✓</h2>
+    <p>Nada pendente neste filtro. Você tem <b style="color:var(--text)">${done}</b> de ${CARDS.length} cartas dominadas.</p>
+    <button class="ghost" id="again">Rever tudo deste filtro</button>
+  </div>`;
+  document.getElementById("again").onclick=()=>{ restoreStage(); startSession(true); };
+}
+function restoreStage(){
+  const stage=document.querySelector(".stage");
+  if(!document.getElementById("card")){
+    stage.innerHTML="";
+    stage.appendChild(cardEl); cardEl.style.display="";
+  }
+  cardEl.style.display=""; controlsEl.style.display="";
+}
+
+function startSession(includeMastered=false){
+  restoreStage();
+  queue=buildQueue(includeMastered);
+  updateHeader(); renderFilters();
+  if(queue.length===0){ finish(); return; }
+  showCard(queue.shift());
+}
+
+/* events */
+cardEl.addEventListener("click",flip);
+cardEl.addEventListener("keydown",e=>{ if(e.code==="Space"||e.code==="Enter"){e.preventDefault();flip();}});
+controlsEl.querySelectorAll(".rate").forEach(b=>b.onclick=()=>rate(+b.dataset.r));
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="BUTTON"&&e.code==="Space")return;
+  if(e.code==="Space"&&!flipped){e.preventDefault();flip();return;}
+  if(flipped&&["Digit1","Digit2","Digit3"].includes(e.code)){e.preventDefault();rate(+e.code.slice(-1)-1);}
+});
+$("#resetbtn").onclick=async()=>{
+  if(!confirm("Zerar todo o progresso e o streak?"))return;
+  STATE={prog:{},streakDays:0,lastDay:null}; await saveState(STATE); startSession();
+};
+$("#allbtn").onclick=()=>startSession(true);
+
+/* boot */
+(async()=>{
+  STATE=await loadState();
+  renderFilters();
+  startSession();
+})();
+
+/* service worker (offline + instalável) */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  });
+}
+</script>
