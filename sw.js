@@ -1,4 +1,4 @@
-const CACHE = "saa-drill-v1";
+const CACHE = "saa-drill-v2";
 const ASSETS = [
   "./",
   "./index.html",
