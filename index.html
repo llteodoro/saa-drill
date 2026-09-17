@@ -122,6 +122,10 @@
     .back{transform:none}
     .card:not(.flipped) .back{display:none}
   }
+  .secrow{display:flex;align-items:center;gap:10px;margin-top:2px}
+  .secrow label{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+  #secsel{flex:1;appearance:none;background:var(--ink2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%238A97AD' stroke-width='1.5'/></svg>") no-repeat right 12px center;border:1px solid var(--line);color:var(--text);font-family:inherit;font-size:13px;font-weight:500;padding:9px 30px 9px 12px;border-radius:11px;cursor:pointer}
+  #secsel:hover{border-color:var(--muted2)}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 
@@ -139,6 +143,10 @@
       </div>
     </div>
     <div class="filters" id="filters"></div>
+    <div class="secrow">
+      <label for="secsel">📚 Seção do Maarek</label>
+      <select id="secsel" aria-label="Filtrar por seção do curso"></select>
+    </div>
   </header>
 
   <div class="stage">
@@ -178,78 +186,99 @@ const DECKS = {
   d4:{name:"D4 · Cost (20%)", color:"var(--d4)"},
 };
 
+// Seções do curso do Stephane Maarek (SAA-C03 v48), em ordem de aula.
+const SECTIONS = [
+  {id:"iam", label:"IAM"},
+  {id:"ec2", label:"EC2"},
+  {id:"storage-ec2", label:"EC2 Storage (EBS/EFS)"},
+  {id:"ha", label:"Alta Disponibilidade (ELB/ASG)"},
+  {id:"rds", label:"RDS · Aurora · ElastiCache"},
+  {id:"route53", label:"Route 53"},
+  {id:"s3", label:"S3"},
+  {id:"cloudfront", label:"CloudFront · Global Accelerator"},
+  {id:"messaging", label:"Mensageria (SQS/SNS/Kinesis)"},
+  {id:"containers", label:"Containers (ECS/EKS/Fargate)"},
+  {id:"serverless", label:"Serverless (Lambda/DynamoDB)"},
+  {id:"monitoring", label:"Monitoring & Audit"},
+  {id:"identity", label:"Advanced Identity (STS/Organizations)"},
+  {id:"security", label:"Security & Encryption (KMS/WAF)"},
+  {id:"vpc", label:"VPC & Networking"},
+  {id:"dr", label:"Disaster Recovery & Migrations"},
+  {id:"cfn", label:"CloudFormation"},
+];
+
 // type: map | concept | scenario. mono flag renders back lead as identifier.
 const CARDS = [
   // ---------- BRIDGE (Azure -> AWS) ----------
-  {d:"bridge",t:"map",az:"AKS",aws:"EKS",note:"Elastic Kubernetes Service. Managed control plane. Você já opera AKS: o modelo mental é o mesmo, muda IAM (IRSA) e a rede (VPC CNI)."},
-  {d:"bridge",t:"map",az:"Azure VMs",aws:"EC2",note:"Elastic Compute Cloud. A unidade de compute base. Instance types = SKUs."},
-  {d:"bridge",t:"map",az:"Blob Storage",aws:"S3",note:"Object storage. Durabilidade de 11 noves. Base de metade das questões de storage/custo."},
-  {d:"bridge",t:"map",az:"Azure Functions",aws:"Lambda",note:"Serverless, event-driven, timeout máx 15 min. Se a questão diz 'sem gerenciar servidor' e é curto, é Lambda."},
-  {d:"bridge",t:"map",az:"Key Vault",aws:"KMS + Secrets Manager",note:"Pegadinha: Key Vault vira DOIS serviços. KMS = chaves de criptografia. Secrets Manager = segredos com rotação automática."},
-  {d:"bridge",t:"map",az:"Entra ID (Azure AD)",aws:"IAM + IAM Identity Center",note:"IAM = permissões de recurso. Identity Center = SSO/federação. Não é 1:1."},
-  {d:"bridge",t:"map",az:"ARM Templates / Bicep",aws:"CloudFormation",note:"IaC nativo. Você é Terraform, mas SAA cita CloudFormation como o nativo AWS."},
-  {d:"bridge",t:"map",az:"Azure Monitor",aws:"CloudWatch",note:"Métricas, logs, alarmes, dashboards. CloudWatch Logs = Log Analytics."},
-  {d:"bridge",t:"map",az:"VNet",aws:"VPC",note:"Virtual Private Cloud. Subnets, route tables, IGW. A espinha de rede de tudo."},
-  {d:"bridge",t:"map",az:"NSG (Network Security Group)",aws:"Security Group + NACL",note:"Pegadinha central: SG é stateful (nível instância). NACL é stateless (nível subnet). NSG junta os dois conceitos."},
-  {d:"bridge",t:"map",az:"Azure Load Balancer (L4)",aws:"NLB",note:"Network Load Balancer. L4, latência ultrabaixa, IP estático."},
-  {d:"bridge",t:"map",az:"Application Gateway (L7)",aws:"ALB",note:"Application Load Balancer. L7, roteia por path/host, integra WAF."},
-  {d:"bridge",t:"map",az:"Cosmos DB",aws:"DynamoDB",note:"NoSQL gerenciado, serverless, escala horizontal. Single-digit ms."},
-  {d:"bridge",t:"map",az:"Azure SQL",aws:"RDS / Aurora",note:"RDS = relacional gerenciado (MySQL/Postgres/etc). Aurora = a versão AWS-nativa, mais performática."},
-  {d:"bridge",t:"map",az:"Azure Cache for Redis",aws:"ElastiCache",note:"Redis ou Memcached gerenciado. Cache de sessão/query."},
-  {d:"bridge",t:"map",az:"Service Bus",aws:"SQS + SNS",note:"SQS = fila (pull, desacopla). SNS = pub/sub (push, fan-out). Juntos cobrem o Service Bus."},
-  {d:"bridge",t:"map",az:"Azure CDN / Front Door",aws:"CloudFront",note:"CDN de borda. Cacheia conteúdo perto do usuário, reduz latência."},
-  {d:"bridge",t:"map",az:"Container Instances / ACA",aws:"ECS Fargate",note:"Containers sem gerenciar nós. Fargate = o modo serverless do ECS/EKS."},
-  {d:"bridge",t:"map",az:"Container Registry (ACR)",aws:"ECR",note:"Elastic Container Registry. Imagens Docker privadas."},
-  {d:"bridge",t:"map",az:"Traffic Manager",aws:"Route 53",note:"DNS + roteamento (failover, latency, weighted, geo). Também é o registrar."},
-  {d:"bridge",t:"map",az:"ExpressRoute",aws:"Direct Connect",note:"Link dedicado privado on-prem→cloud, fora da internet pública."},
-  {d:"bridge",t:"map",az:"Managed Identity",aws:"IAM Role (instance profile / IRSA)",note:"Credencial sem senha pra recurso. EC2 usa instance profile; EKS usa IRSA."},
-  {d:"bridge",t:"map",az:"Azure Policy",aws:"SCP + AWS Config",note:"SCP (via Organizations) = guardrail de permissão máxima. Config = conformidade/auditoria de estado."},
-  {d:"bridge",t:"map",az:"Azure Bastion",aws:"SSM Session Manager",note:"Acesso a instância sem expor SSH/porta pública. Sem bastion host pra manter."},
+  {d:"bridge",t:"map",s:"containers",az:"AKS",aws:"EKS",note:"Elastic Kubernetes Service. Managed control plane. Você já opera AKS: o modelo mental é o mesmo, muda IAM (IRSA) e a rede (VPC CNI)."},
+  {d:"bridge",t:"map",s:"ec2",az:"Azure VMs",aws:"EC2",note:"Elastic Compute Cloud. A unidade de compute base. Instance types = SKUs."},
+  {d:"bridge",t:"map",s:"s3",az:"Blob Storage",aws:"S3",note:"Object storage. Durabilidade de 11 noves. Base de metade das questões de storage/custo."},
+  {d:"bridge",t:"map",s:"serverless",az:"Azure Functions",aws:"Lambda",note:"Serverless, event-driven, timeout máx 15 min. Se a questão diz 'sem gerenciar servidor' e é curto, é Lambda."},
+  {d:"bridge",t:"map",s:"security",az:"Key Vault",aws:"KMS + Secrets Manager",note:"Pegadinha: Key Vault vira DOIS serviços. KMS = chaves de criptografia. Secrets Manager = segredos com rotação automática."},
+  {d:"bridge",t:"map",s:"iam",az:"Entra ID (Azure AD)",aws:"IAM + IAM Identity Center",note:"IAM = permissões de recurso. Identity Center = SSO/federação. Não é 1:1."},
+  {d:"bridge",t:"map",s:"cfn",az:"ARM Templates / Bicep",aws:"CloudFormation",note:"IaC nativo. Você é Terraform, mas SAA cita CloudFormation como o nativo AWS."},
+  {d:"bridge",t:"map",s:"monitoring",az:"Azure Monitor",aws:"CloudWatch",note:"Métricas, logs, alarmes, dashboards. CloudWatch Logs = Log Analytics."},
+  {d:"bridge",t:"map",s:"vpc",az:"VNet",aws:"VPC",note:"Virtual Private Cloud. Subnets, route tables, IGW. A espinha de rede de tudo."},
+  {d:"bridge",t:"map",s:"vpc",az:"NSG (Network Security Group)",aws:"Security Group + NACL",note:"Pegadinha central: SG é stateful (nível instância). NACL é stateless (nível subnet). NSG junta os dois conceitos."},
+  {d:"bridge",t:"map",s:"ha",az:"Azure Load Balancer (L4)",aws:"NLB",note:"Network Load Balancer. L4, latência ultrabaixa, IP estático."},
+  {d:"bridge",t:"map",s:"ha",az:"Application Gateway (L7)",aws:"ALB",note:"Application Load Balancer. L7, roteia por path/host, integra WAF."},
+  {d:"bridge",t:"map",s:"serverless",az:"Cosmos DB",aws:"DynamoDB",note:"NoSQL gerenciado, serverless, escala horizontal. Single-digit ms."},
+  {d:"bridge",t:"map",s:"rds",az:"Azure SQL",aws:"RDS / Aurora",note:"RDS = relacional gerenciado (MySQL/Postgres/etc). Aurora = a versão AWS-nativa, mais performática."},
+  {d:"bridge",t:"map",s:"rds",az:"Azure Cache for Redis",aws:"ElastiCache",note:"Redis ou Memcached gerenciado. Cache de sessão/query."},
+  {d:"bridge",t:"map",s:"messaging",az:"Service Bus",aws:"SQS + SNS",note:"SQS = fila (pull, desacopla). SNS = pub/sub (push, fan-out). Juntos cobrem o Service Bus."},
+  {d:"bridge",t:"map",s:"cloudfront",az:"Azure CDN / Front Door",aws:"CloudFront",note:"CDN de borda. Cacheia conteúdo perto do usuário, reduz latência."},
+  {d:"bridge",t:"map",s:"containers",az:"Container Instances / ACA",aws:"ECS Fargate",note:"Containers sem gerenciar nós. Fargate = o modo serverless do ECS/EKS."},
+  {d:"bridge",t:"map",s:"containers",az:"Container Registry (ACR)",aws:"ECR",note:"Elastic Container Registry. Imagens Docker privadas."},
+  {d:"bridge",t:"map",s:"route53",az:"Traffic Manager",aws:"Route 53",note:"DNS + roteamento (failover, latency, weighted, geo). Também é o registrar."},
+  {d:"bridge",t:"map",s:"vpc",az:"ExpressRoute",aws:"Direct Connect",note:"Link dedicado privado on-prem→cloud, fora da internet pública."},
+  {d:"bridge",t:"map",s:"iam",az:"Managed Identity",aws:"IAM Role (instance profile / IRSA)",note:"Credencial sem senha pra recurso. EC2 usa instance profile; EKS usa IRSA."},
+  {d:"bridge",t:"map",s:"identity",az:"Azure Policy",aws:"SCP + AWS Config",note:"SCP (via Organizations) = guardrail de permissão máxima. Config = conformidade/auditoria de estado."},
+  {d:"bridge",t:"map",s:"security",az:"Azure Bastion",aws:"SSM Session Manager",note:"Acesso a instância sem expor SSH/porta pública. Sem bastion host pra manter."},
 
   // ---------- D1 SECURE (30%) ----------
-  {d:"d1",t:"concept",q:"Security Group vs NACL — a diferença que a prova ama.",a:"SG é stateful e no nível da instância; NACL é stateless e no nível da subnet.",note:"trap|<b>Stateful</b>: SG lembra a conexão de saída e libera o retorno automático. <b>Stateless</b>: NACL precisa de regra explícita nos dois sentidos (inbound E outbound)."},
-  {d:"d1",t:"concept",q:"Como dar a uma EC2 acesso a um bucket S3 sem chave hardcoded?",a:"IAM Role anexada via instance profile.",note:"Nunca embuta access key em EC2. Role = credencial temporária rotacionada pela AWS. É o least privilege na prática."},
-  {d:"d1",t:"concept",q:"O que é uma SCP (Service Control Policy)?",a:"Guardrail no AWS Organizations que define o teto de permissões de uma conta.",note:"SCP não concede permissão, só limita. Mesmo um admin da conta não passa do que a SCP permite. Clássico pra 'impedir que qualquer conta desligue o CloudTrail'."},
-  {d:"d1",t:"concept",q:"Diferença entre criptografia S3: SSE-S3, SSE-KMS, SSE-C.",a:"SSE-S3 = chave gerida pela AWS. SSE-KMS = chave no KMS (auditável, com política e rotação). SSE-C = você fornece a chave.",note:"Se a questão pede <b>auditoria de uso da chave</b> ou <b>controle de rotação</b> → SSE-KMS."},
-  {d:"d1",t:"concept",q:"CloudTrail vs CloudWatch — não confunda.",a:"CloudTrail registra chamadas de API (quem fez o quê). CloudWatch coleta métricas e logs (o que está acontecendo).",note:"trap|Auditoria e forense → <b>CloudTrail</b>. Performance, alarme, dashboard → <b>CloudWatch</b>."},
-  {d:"d1",t:"concept",q:"Secrets Manager vs Parameter Store — quando cada um?",a:"Secrets Manager quando precisa de rotação automática de credenciais. Parameter Store (SSM) para config/segredos simples e baratos.",note:"Rotação nativa de senha de RDS = Secrets Manager. Guardar uma flag ou string de config = Parameter Store (de graça)."},
-  {d:"d1",t:"concept",q:"Acessar S3 de dentro da VPC sem passar pela internet.",a:"Gateway VPC Endpoint (para S3 e DynamoDB).",note:"Gateway endpoint = grátis, via route table, só S3/DynamoDB. Demais serviços usam Interface Endpoint (PrivateLink, pago)."},
-  {d:"d1",t:"concept",q:"AWS Shield vs WAF.",a:"Shield protege contra DDoS (camadas 3/4). WAF filtra tráfego HTTP (camada 7): SQL injection, XSS, rate limit.",note:"Shield Standard é automático e grátis; Advanced é pago com suporte dedicado. WAF anexa em ALB, CloudFront ou API Gateway."},
-  {d:"d1",t:"concept",q:"Serviço que detecta ameaças analisando logs (VPC Flow, CloudTrail, DNS).",a:"Amazon GuardDuty.",note:"Detecção de ameaça baseada em ML, sem agente. Não confunda com Inspector (vulnerabilidade em EC2/imagem) nem Macie (PII em S3)."},
-  {d:"d1",t:"concept",q:"Acesso temporário entre contas AWS.",a:"STS com AssumeRole (cross-account role).",note:"Nada de criar usuário na outra conta. A role de confiança + STS emite credencial temporária. Base de multi-account seguro."},
-  {d:"d1",t:"scenario",q:"Precisa achar dados sensíveis (PII, cartões) espalhados em buckets S3.",a:"Amazon Macie.",note:"Macie = descoberta de dados sensíveis em S3 via ML. Se a pergunta cita PII + S3, é Macie."},
-  {d:"d1",t:"concept",q:"Onde encaixa o Cognito?",a:"Autenticação de usuários finais de apps web/mobile (user pools) e credenciais temporárias (identity pools).",note:"IAM é pra acesso a recursos AWS. Cognito é pra os USUÁRIOS do seu app fazerem login."},
+  {d:"d1",t:"concept",s:"vpc",q:"Security Group vs NACL — a diferença que a prova ama.",a:"SG é stateful e no nível da instância; NACL é stateless e no nível da subnet.",note:"trap|<b>Stateful</b>: SG lembra a conexão de saída e libera o retorno automático. <b>Stateless</b>: NACL precisa de regra explícita nos dois sentidos (inbound E outbound)."},
+  {d:"d1",t:"concept",s:"iam",q:"Como dar a uma EC2 acesso a um bucket S3 sem chave hardcoded?",a:"IAM Role anexada via instance profile.",note:"Nunca embuta access key em EC2. Role = credencial temporária rotacionada pela AWS. É o least privilege na prática."},
+  {d:"d1",t:"concept",s:"identity",q:"O que é uma SCP (Service Control Policy)?",a:"Guardrail no AWS Organizations que define o teto de permissões de uma conta.",note:"SCP não concede permissão, só limita. Mesmo um admin da conta não passa do que a SCP permite. Clássico pra 'impedir que qualquer conta desligue o CloudTrail'."},
+  {d:"d1",t:"concept",s:"s3",q:"Diferença entre criptografia S3: SSE-S3, SSE-KMS, SSE-C.",a:"SSE-S3 = chave gerida pela AWS. SSE-KMS = chave no KMS (auditável, com política e rotação). SSE-C = você fornece a chave.",note:"Se a questão pede <b>auditoria de uso da chave</b> ou <b>controle de rotação</b> → SSE-KMS."},
+  {d:"d1",t:"concept",s:"monitoring",q:"CloudTrail vs CloudWatch — não confunda.",a:"CloudTrail registra chamadas de API (quem fez o quê). CloudWatch coleta métricas e logs (o que está acontecendo).",note:"trap|Auditoria e forense → <b>CloudTrail</b>. Performance, alarme, dashboard → <b>CloudWatch</b>."},
+  {d:"d1",t:"concept",s:"security",q:"Secrets Manager vs Parameter Store — quando cada um?",a:"Secrets Manager quando precisa de rotação automática de credenciais. Parameter Store (SSM) para config/segredos simples e baratos.",note:"Rotação nativa de senha de RDS = Secrets Manager. Guardar uma flag ou string de config = Parameter Store (de graça)."},
+  {d:"d1",t:"concept",s:"vpc",q:"Acessar S3 de dentro da VPC sem passar pela internet.",a:"Gateway VPC Endpoint (para S3 e DynamoDB).",note:"Gateway endpoint = grátis, via route table, só S3/DynamoDB. Demais serviços usam Interface Endpoint (PrivateLink, pago)."},
+  {d:"d1",t:"concept",s:"security",q:"AWS Shield vs WAF.",a:"Shield protege contra DDoS (camadas 3/4). WAF filtra tráfego HTTP (camada 7): SQL injection, XSS, rate limit.",note:"Shield Standard é automático e grátis; Advanced é pago com suporte dedicado. WAF anexa em ALB, CloudFront ou API Gateway."},
+  {d:"d1",t:"concept",s:"security",q:"Serviço que detecta ameaças analisando logs (VPC Flow, CloudTrail, DNS).",a:"Amazon GuardDuty.",note:"Detecção de ameaça baseada em ML, sem agente. Não confunda com Inspector (vulnerabilidade em EC2/imagem) nem Macie (PII em S3)."},
+  {d:"d1",t:"concept",s:"identity",q:"Acesso temporário entre contas AWS.",a:"STS com AssumeRole (cross-account role).",note:"Nada de criar usuário na outra conta. A role de confiança + STS emite credencial temporária. Base de multi-account seguro."},
+  {d:"d1",t:"scenario",s:"security",q:"Precisa achar dados sensíveis (PII, cartões) espalhados em buckets S3.",a:"Amazon Macie.",note:"Macie = descoberta de dados sensíveis em S3 via ML. Se a pergunta cita PII + S3, é Macie."},
+  {d:"d1",t:"concept",s:"serverless",q:"Onde encaixa o Cognito?",a:"Autenticação de usuários finais de apps web/mobile (user pools) e credenciais temporárias (identity pools).",note:"IAM é pra acesso a recursos AWS. Cognito é pra os USUÁRIOS do seu app fazerem login."},
 
   // ---------- D2 RESILIENT (26%) ----------
-  {d:"d2",t:"concept",q:"RDS Multi-AZ vs Read Replica — a pegadinha nº1 de resiliência.",a:"Multi-AZ = alta disponibilidade (standby síncrono, failover automático). Read Replica = escala de leitura (assíncrono).",note:"trap|'Sobreviver à queda de uma AZ' → <b>Multi-AZ</b>. 'Leituras sobrecarregando o banco' → <b>Read Replica</b>. Podem coexistir."},
-  {d:"d2",t:"concept",q:"As 4 estratégias de DR, do mais barato/lento ao mais caro/rápido.",a:"Backup & Restore → Pilot Light → Warm Standby → Multi-Site Active/Active.",note:"Quanto menor o RTO/RPO exigido, mais pra direita (e mais caro). A questão te dá RTO/RPO e você escolhe."},
-  {d:"d2",t:"concept",q:"Como manter uma frota de EC2 saudável e no tamanho certo automaticamente?",a:"Auto Scaling Group com health checks + políticas de scaling.",note:"ASG substitui instância que falha no health check e escala por métrica (CPU, requests). Combina com ELB."},
-  {d:"d2",t:"concept",q:"Políticas de roteamento do Route 53 (cite as principais).",a:"Simple, Failover, Latency, Weighted, Geolocation, Multivalue.",note:"Failover = DR ativo/passivo. Latency = manda pro região mais rápida. Weighted = canary/split de tráfego."},
-  {d:"d2",t:"concept",q:"Tornar um bucket S3 resiliente a falha de região inteira.",a:"Cross-Region Replication (CRR).",note:"S3 já é multi-AZ dentro da região (11 noves). CRR replica pra outra região — DR e compliance de residência de dados."},
-  {d:"d2",t:"concept",q:"Como desacoplar produtor e consumidor e absorver picos?",a:"Amazon SQS (fila).",note:"A fila vira buffer: se o consumidor cai ou o pico vem, as mensagens esperam. Base de arquitetura resiliente e elástica."},
-  {d:"d2",t:"concept",q:"DynamoDB em múltiplas regiões com leitura/escrita local.",a:"DynamoDB Global Tables.",note:"Replicação multi-region ativa/ativa gerenciada. Baixa latência global + resiliência regional."},
-  {d:"d2",t:"scenario",q:"App precisa ser resiliente: instância pode morrer a qualquer hora sem perder estado.",a:"Arquitetura stateless + estado externo (DynamoDB/ElastiCache/S3).",note:"Nunca guarde sessão no disco da EC2. Estado fora da instância = qualquer nó pode cair e o ASG substitui sem impacto."},
+  {d:"d2",t:"concept",s:"rds",q:"RDS Multi-AZ vs Read Replica — a pegadinha nº1 de resiliência.",a:"Multi-AZ = alta disponibilidade (standby síncrono, failover automático). Read Replica = escala de leitura (assíncrono).",note:"trap|'Sobreviver à queda de uma AZ' → <b>Multi-AZ</b>. 'Leituras sobrecarregando o banco' → <b>Read Replica</b>. Podem coexistir."},
+  {d:"d2",t:"concept",s:"dr",q:"As 4 estratégias de DR, do mais barato/lento ao mais caro/rápido.",a:"Backup & Restore → Pilot Light → Warm Standby → Multi-Site Active/Active.",note:"Quanto menor o RTO/RPO exigido, mais pra direita (e mais caro). A questão te dá RTO/RPO e você escolhe."},
+  {d:"d2",t:"concept",s:"ha",q:"Como manter uma frota de EC2 saudável e no tamanho certo automaticamente?",a:"Auto Scaling Group com health checks + políticas de scaling.",note:"ASG substitui instância que falha no health check e escala por métrica (CPU, requests). Combina com ELB."},
+  {d:"d2",t:"concept",s:"route53",q:"Políticas de roteamento do Route 53 (cite as principais).",a:"Simple, Failover, Latency, Weighted, Geolocation, Multivalue.",note:"Failover = DR ativo/passivo. Latency = manda pro região mais rápida. Weighted = canary/split de tráfego."},
+  {d:"d2",t:"concept",s:"s3",q:"Tornar um bucket S3 resiliente a falha de região inteira.",a:"Cross-Region Replication (CRR).",note:"S3 já é multi-AZ dentro da região (11 noves). CRR replica pra outra região — DR e compliance de residência de dados."},
+  {d:"d2",t:"concept",s:"messaging",q:"Como desacoplar produtor e consumidor e absorver picos?",a:"Amazon SQS (fila).",note:"A fila vira buffer: se o consumidor cai ou o pico vem, as mensagens esperam. Base de arquitetura resiliente e elástica."},
+  {d:"d2",t:"concept",s:"serverless",q:"DynamoDB em múltiplas regiões com leitura/escrita local.",a:"DynamoDB Global Tables.",note:"Replicação multi-region ativa/ativa gerenciada. Baixa latência global + resiliência regional."},
+  {d:"d2",t:"scenario",s:"ha",q:"App precisa ser resiliente: instância pode morrer a qualquer hora sem perder estado.",a:"Arquitetura stateless + estado externo (DynamoDB/ElastiCache/S3).",note:"Nunca guarde sessão no disco da EC2. Estado fora da instância = qualquer nó pode cair e o ASG substitui sem impacto."},
 
   // ---------- D3 PERFORMANCE (24%) ----------
-  {d:"d3",t:"scenario",q:"Processar um arquivo assim que ele chega no S3, sem servidor, execução curta.",a:"Lambda (trigger de evento S3).",note:"Event-driven + efêmero + <15min = Lambda. Se fosse processamento longo/contínuo, seria EC2/Fargate/Batch."},
-  {d:"d3",t:"concept",q:"ALB vs NLB — quando cada um?",a:"ALB para HTTP/HTTPS com roteamento por path/host (L7). NLB para TCP/UDP, latência mínima e IP estático (L4).",note:"trap|'Roteia por URL /api vs /app' → ALB. 'Milhões de conexões, IP fixo, menor latência' → NLB."},
-  {d:"d3",t:"concept",q:"Tipos de volume EBS: gp3, io2, st1, sc1 — o mapa rápido.",a:"gp3 = SSD de propósito geral (padrão). io2 = SSD de IOPS alto/consistente. st1 = HDD de throughput. sc1 = HDD frio/barato.",note:"Banco exigente de IOPS → io2. Big data sequencial → st1. Arquivo raramente acessado → sc1."},
-  {d:"d3",t:"concept",q:"Reduzir latência de leituras repetidas no banco.",a:"ElastiCache (Redis/Memcached); para DynamoDB, use DAX.",note:"Cache in-memory na frente do banco. DAX é o cache específico do DynamoDB (microssegundos)."},
-  {d:"d3",t:"concept",q:"Entregar conteúdo estático global com baixa latência.",a:"CloudFront (CDN de borda).",note:"Cacheia em edge locations perto do usuário. Combina com S3 (origem) — padrão de site estático/mídia."},
-  {d:"d3",t:"concept",q:"EFS vs EBS vs S3 — o eixo de decisão.",a:"EBS = bloco, uma instância. EFS = arquivo compartilhado, várias instâncias (NFS). S3 = objeto, via API.",note:"'Vários EC2 lendo o mesmo filesystem' → EFS. 'Disco de uma instância' → EBS. 'Objetos via HTTP' → S3."},
-  {d:"d3",t:"concept",q:"Acelerar upload de usuários distantes pro S3.",a:"S3 Transfer Acceleration.",note:"Usa a rede de edge do CloudFront pra entrar mais rápido no S3. Pra download global é o CloudFront."},
-  {d:"d3",t:"scenario",q:"Ingestão de streaming em tempo real (clickstream, telemetria) em larga escala.",a:"Amazon Kinesis (Data Streams).",note:"Streaming ordenado e escalável. Se a questão fala 'real-time, milhões de eventos, ordem', pensa Kinesis."},
-  {d:"d3",t:"concept",q:"Rodar containers sem gerenciar EC2.",a:"AWS Fargate (com ECS ou EKS).",note:"Serverless de container. Você paga por task, não por nó. 'Sem gerenciar a infra de nós' = Fargate."},
+  {d:"d3",t:"scenario",s:"serverless",q:"Processar um arquivo assim que ele chega no S3, sem servidor, execução curta.",a:"Lambda (trigger de evento S3).",note:"Event-driven + efêmero + <15min = Lambda. Se fosse processamento longo/contínuo, seria EC2/Fargate/Batch."},
+  {d:"d3",t:"concept",s:"ha",q:"ALB vs NLB — quando cada um?",a:"ALB para HTTP/HTTPS com roteamento por path/host (L7). NLB para TCP/UDP, latência mínima e IP estático (L4).",note:"trap|'Roteia por URL /api vs /app' → ALB. 'Milhões de conexões, IP fixo, menor latência' → NLB."},
+  {d:"d3",t:"concept",s:"storage-ec2",q:"Tipos de volume EBS: gp3, io2, st1, sc1 — o mapa rápido.",a:"gp3 = SSD de propósito geral (padrão). io2 = SSD de IOPS alto/consistente. st1 = HDD de throughput. sc1 = HDD frio/barato.",note:"Banco exigente de IOPS → io2. Big data sequencial → st1. Arquivo raramente acessado → sc1."},
+  {d:"d3",t:"concept",s:"rds",q:"Reduzir latência de leituras repetidas no banco.",a:"ElastiCache (Redis/Memcached); para DynamoDB, use DAX.",note:"Cache in-memory na frente do banco. DAX é o cache específico do DynamoDB (microssegundos)."},
+  {d:"d3",t:"concept",s:"cloudfront",q:"Entregar conteúdo estático global com baixa latência.",a:"CloudFront (CDN de borda).",note:"Cacheia em edge locations perto do usuário. Combina com S3 (origem) — padrão de site estático/mídia."},
+  {d:"d3",t:"concept",s:"storage-ec2",q:"EFS vs EBS vs S3 — o eixo de decisão.",a:"EBS = bloco, uma instância. EFS = arquivo compartilhado, várias instâncias (NFS). S3 = objeto, via API.",note:"'Vários EC2 lendo o mesmo filesystem' → EFS. 'Disco de uma instância' → EBS. 'Objetos via HTTP' → S3."},
+  {d:"d3",t:"concept",s:"s3",q:"Acelerar upload de usuários distantes pro S3.",a:"S3 Transfer Acceleration.",note:"Usa a rede de edge do CloudFront pra entrar mais rápido no S3. Pra download global é o CloudFront."},
+  {d:"d3",t:"scenario",s:"messaging",q:"Ingestão de streaming em tempo real (clickstream, telemetria) em larga escala.",a:"Amazon Kinesis (Data Streams).",note:"Streaming ordenado e escalável. Se a questão fala 'real-time, milhões de eventos, ordem', pensa Kinesis."},
+  {d:"d3",t:"concept",s:"containers",q:"Rodar containers sem gerenciar EC2.",a:"AWS Fargate (com ECS ou EKS).",note:"Serverless de container. Você paga por task, não por nó. 'Sem gerenciar a infra de nós' = Fargate."},
 
   // ---------- D4 COST (20%) ----------
-  {d:"d4",t:"concept",q:"Os 4 modelos de preço de EC2.",a:"On-Demand (flexível, caro), Reserved (1/3 anos, steady-state), Spot (até 90% off, interrompível), Savings Plans (commit de $/h, flexível).",note:"trap|'Workload 24/7 previsível' → Reserved/Savings Plans. 'Batch tolerante a interrupção' → Spot. 'Imprevisível/curto' → On-Demand."},
-  {d:"d4",t:"scenario",q:"Job de batch que pode ser interrompido e retomado, quer o menor custo.",a:"Spot Instances.",note:"Até 90% mais barato. Só pra carga tolerante a interrupção (a AWS pode retomar a instância com 2 min de aviso)."},
-  {d:"d4",t:"concept",q:"Classes de storage S3, do quente ao frio.",a:"Standard → Intelligent-Tiering → Standard-IA → One Zone-IA → Glacier Instant → Glacier Flexible → Glacier Deep Archive.",note:"IA = acesso infrequente (mais barato guardar, paga pra recuperar). Deep Archive = o mais barato, recuperação em horas."},
-  {d:"d4",t:"scenario",q:"Não sei o padrão de acesso dos objetos e quero otimizar custo automaticamente.",a:"S3 Intelligent-Tiering.",note:"Move objetos entre camadas sozinho conforme o acesso. Quando a questão diz 'padrão de acesso desconhecido/variável', é essa."},
-  {d:"d4",t:"scenario",q:"Arquivo de compliance, acesso 1x por ano, recuperação em 12h ok, custo mínimo.",a:"S3 Glacier Deep Archive.",note:"O storage mais barato da AWS. Se a recuperação precisasse ser em minutos, seria Glacier Instant Retrieval."},
-  {d:"d4",t:"concept",q:"Automatizar a transição de objetos S3 entre classes.",a:"S3 Lifecycle Policies.",note:"Regra: depois de N dias vai pra IA, depois pra Glacier, depois expira. Custo cai sem intervenção manual."},
-  {d:"d4",t:"concept",q:"Reduzir custo de dados saindo da VPC pra S3/DynamoDB.",a:"Gateway VPC Endpoint (evita NAT Gateway).",note:"Tráfego pra S3 via NAT Gateway custa por GB. Gateway endpoint é grátis e tira esse custo de transferência. Pega muita gente."},
-  {d:"d4",t:"concept",q:"Onde ver recomendações de economia, segurança e limites?",a:"AWS Trusted Advisor.",note:"Checks de cost optimization, security, fault tolerance, limits. Cost Explorer = análise/gráfico de gasto. Budgets = alerta de teto."},
+  {d:"d4",t:"concept",s:"ec2",q:"Os 4 modelos de preço de EC2.",a:"On-Demand (flexível, caro), Reserved (1/3 anos, steady-state), Spot (até 90% off, interrompível), Savings Plans (commit de $/h, flexível).",note:"trap|'Workload 24/7 previsível' → Reserved/Savings Plans. 'Batch tolerante a interrupção' → Spot. 'Imprevisível/curto' → On-Demand."},
+  {d:"d4",t:"scenario",s:"ec2",q:"Job de batch que pode ser interrompido e retomado, quer o menor custo.",a:"Spot Instances.",note:"Até 90% mais barato. Só pra carga tolerante a interrupção (a AWS pode retomar a instância com 2 min de aviso)."},
+  {d:"d4",t:"concept",s:"s3",q:"Classes de storage S3, do quente ao frio.",a:"Standard → Intelligent-Tiering → Standard-IA → One Zone-IA → Glacier Instant → Glacier Flexible → Glacier Deep Archive.",note:"IA = acesso infrequente (mais barato guardar, paga pra recuperar). Deep Archive = o mais barato, recuperação em horas."},
+  {d:"d4",t:"scenario",s:"s3",q:"Não sei o padrão de acesso dos objetos e quero otimizar custo automaticamente.",a:"S3 Intelligent-Tiering.",note:"Move objetos entre camadas sozinho conforme o acesso. Quando a questão diz 'padrão de acesso desconhecido/variável', é essa."},
+  {d:"d4",t:"scenario",s:"s3",q:"Arquivo de compliance, acesso 1x por ano, recuperação em 12h ok, custo mínimo.",a:"S3 Glacier Deep Archive.",note:"O storage mais barato da AWS. Se a recuperação precisasse ser em minutos, seria Glacier Instant Retrieval."},
+  {d:"d4",t:"concept",s:"s3",q:"Automatizar a transição de objetos S3 entre classes.",a:"S3 Lifecycle Policies.",note:"Regra: depois de N dias vai pra IA, depois pra Glacier, depois expira. Custo cai sem intervenção manual."},
+  {d:"d4",t:"concept",s:"vpc",q:"Reduzir custo de dados saindo da VPC pra S3/DynamoDB.",a:"Gateway VPC Endpoint (evita NAT Gateway).",note:"Tráfego pra S3 via NAT Gateway custa por GB. Gateway endpoint é grátis e tira esse custo de transferência. Pega muita gente."},
+  {d:"d4",t:"concept",s:"monitoring",q:"Onde ver recomendações de economia, segurança e limites?",a:"AWS Trusted Advisor.",note:"Checks de cost optimization, security, fault tolerance, limits. Cost Explorer = análise/gráfico de gasto. Budgets = alerta de teto."},
 ];
 
 /* ---------------- Persistence (localStorage, with in-memory fallback) ---------------- */
@@ -277,6 +306,7 @@ function box(c){ const p=STATE.prog[cardId(c)]; return p?p.box:0; } // 0 = novo
 function mastered(c){ return box(c)>=5; }
 
 function inFilter(c){
+  if(filter.startsWith("sec:")) return c.s===filter.slice(4);
   if(filter==="all") return true;
   if(filter==="review") return box(c)>0 && box(c)<3;
   if(filter==="scenario") return c.t==="scenario";
@@ -316,6 +346,20 @@ function renderFilters(){
     b.onclick=()=>{filter=k; startSession();};
     f.appendChild(b);
   });
+  renderSectionSelect();
+}
+
+function renderSectionSelect(){
+  const sel=document.getElementById("secsel"); if(!sel) return;
+  const cur = filter.startsWith("sec:") ? filter.slice(4) : "";
+  let html='<option value="">Todas as seções</option>';
+  SECTIONS.forEach(s=>{
+    const total=CARDS.filter(c=>c.s===s.id).length;
+    if(!total) return;
+    const left=CARDS.filter(c=>c.s===s.id && !mastered(c)).length;
+    html+=`<option value="${s.id}"${cur===s.id?" selected":""}>${s.label} · ${left}/${total}</option>`;
+  });
+  sel.innerHTML=html;
 }
 
 function showCard(c){
@@ -326,7 +370,9 @@ function showCard(c){
   // front
   $("#ftag .dot").style.background=deck.color;
   $("#ftag .tname").textContent=deck.name;
-  $("#ftag .kind").textContent = c.t==="scenario"?"cenário": c.t==="map"?"az → aws":"conceito";
+  const sec=SECTIONS.find(s=>s.id===c.s);
+  const tw = c.t==="scenario"?"cenário": c.t==="map"?"az → aws":"conceito";
+  $("#ftag .kind").textContent = (sec?sec.label+" · ":"")+tw;
   $("#btag .dot").style.background=deck.color;
   $("#btag .tname").textContent=deck.name;
   const front=$("#front"), back=$("#back"), note=$("#note");
@@ -422,6 +468,11 @@ $("#resetbtn").onclick=async()=>{
   STATE={prog:{},streakDays:0,lastDay:null}; await saveState(STATE); startSession();
 };
 $("#allbtn").onclick=()=>startSession(true);
+$("#secsel").addEventListener("change",e=>{
+  const v=e.target.value;
+  filter = v ? ("sec:"+v) : "all";
+  startSession();
+});
 
 /* boot */
 (async()=>{
