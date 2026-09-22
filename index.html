@@ -201,9 +201,13 @@ const SECTIONS = [
   {id:"serverless", label:"Serverless (Lambda/DynamoDB)"},
   {id:"monitoring", label:"Monitoring & Audit"},
   {id:"identity", label:"Advanced Identity (STS/Organizations)"},
+  {id:"governance", label:"Organizations, Governança & Custos"},
   {id:"security", label:"Security & Encryption (KMS/WAF)"},
+  {id:"analytics", label:"Dados & Analytics"},
+  {id:"ml", label:"Machine Learning & IA"},
   {id:"vpc", label:"VPC & Networking"},
   {id:"dr", label:"Disaster Recovery & Migrations"},
+  {id:"architecture", label:"Well-Architected Framework"},
   {id:"cfn", label:"CloudFormation"},
 ];
 
@@ -248,6 +252,12 @@ const CARDS = [
   {d:"d1",t:"concept",s:"identity",q:"Acesso temporário entre contas AWS.",a:"STS com AssumeRole (cross-account role).",note:"Nada de criar usuário na outra conta. A role de confiança + STS emite credencial temporária. Base de multi-account seguro."},
   {d:"d1",t:"scenario",s:"security",q:"Precisa achar dados sensíveis (PII, cartões) espalhados em buckets S3.",a:"Amazon Macie.",note:"Macie = descoberta de dados sensíveis em S3 via ML. Se a pergunta cita PII + S3, é Macie."},
   {d:"d1",t:"concept",s:"serverless",q:"Onde encaixa o Cognito?",a:"Autenticação de usuários finais de apps web/mobile (user pools) e credenciais temporárias (identity pools).",note:"IAM é pra acesso a recursos AWS. Cognito é pra os USUÁRIOS do seu app fazerem login."},
+  {d:"d1",t:"concept",s:"security",q:"CMK (Customer Managed Key) vs chave gerenciada pela AWS no KMS — a diferença que importa.",a:"CMK dá controle total: política de chave, rotação, auditoria detalhada e revogação. Chave gerenciada pela AWS (aws/service) tem rotação automática mas sem controle de política.",note:"trap|Se a questão pede 'controle granular sobre quem usa a chave' ou 'auditoria de cada uso' → CMK no KMS, não a chave padrão do serviço."},
+  {d:"d1",t:"concept",s:"security",q:"O que é envelope encryption e por que o KMS usa esse modelo?",a:"Uma data key gerada pelo KMS criptografa os dados localmente; a própria data key é criptografada pela CMK e guardada junto ao objeto.",note:"Evita enviar o dado inteiro pro KMS a cada operação — só a chave pequena viaja até o KMS. É como S3, EBS e RDS criptografam com KMS por baixo dos panos."},
+  {d:"d1",t:"concept",s:"governance",q:"AWS Control Tower — pra que serve?",a:"Automatiza a criação de uma landing zone multi-conta com guardrails (SCPs) e conformidade prontos.",note:"Não confunda com Organizations puro: Control Tower usa Organizations por baixo, mas entrega governança pronta out-of-the-box (contas, OUs, guardrails)."},
+  {d:"d1",t:"concept",s:"governance",q:"Consolidated Billing no AWS Organizations — o que ele resolve?",a:"Uma fatura única pra todas as contas da organização, com descontos por volume agregados entre contas.",note:"Não afeta permissões (isso é SCP) — é só faturamento e desconto por escala combinada de uso."},
+  {d:"d1",t:"scenario",s:"identity",q:"Precisa que várias contas AWS só possam usar instâncias de uma lista de tipos permitidos, sem exceção nem por admin.",a:"SCP (Service Control Policy) restringindo os tipos de instância permitidos.",note:"SCP é o teto que nem o root da conta-membro ultrapassa. IAM policy sozinha não amarra outras contas."},
+  {d:"d1",t:"concept",s:"architecture",q:"Os 6 pilares do AWS Well-Architected Framework.",a:"Excelência Operacional, Segurança, Confiabilidade, Eficiência de Performance, Otimização de Custos e Sustentabilidade.",note:"A prova cita 'trade-off entre pilares' — geralmente custo vs performance/confiabilidade. Não existe resposta que maximize todos ao mesmo tempo."},
 
   // ---------- D2 RESILIENT (26%) ----------
   {d:"d2",t:"concept",s:"rds",q:"RDS Multi-AZ vs Read Replica — a pegadinha nº1 de resiliência.",a:"Multi-AZ = alta disponibilidade (standby síncrono, failover automático). Read Replica = escala de leitura (assíncrono).",note:"trap|'Sobreviver à queda de uma AZ' → <b>Multi-AZ</b>. 'Leituras sobrecarregando o banco' → <b>Read Replica</b>. Podem coexistir."},
@@ -258,6 +268,11 @@ const CARDS = [
   {d:"d2",t:"concept",s:"messaging",q:"Como desacoplar produtor e consumidor e absorver picos?",a:"Amazon SQS (fila).",note:"A fila vira buffer: se o consumidor cai ou o pico vem, as mensagens esperam. Base de arquitetura resiliente e elástica."},
   {d:"d2",t:"concept",s:"serverless",q:"DynamoDB em múltiplas regiões com leitura/escrita local.",a:"DynamoDB Global Tables.",note:"Replicação multi-region ativa/ativa gerenciada. Baixa latência global + resiliência regional."},
   {d:"d2",t:"scenario",s:"ha",q:"App precisa ser resiliente: instância pode morrer a qualquer hora sem perder estado.",a:"Arquitetura stateless + estado externo (DynamoDB/ElastiCache/S3).",note:"Nunca guarde sessão no disco da EC2. Estado fora da instância = qualquer nó pode cair e o ASG substitui sem impacto."},
+  {d:"d2",t:"concept",s:"dr",q:"AWS DMS (Database Migration Service) — quando usar?",a:"Migrar bancos de dados para a AWS (ou entre bancos) com replicação contínua e downtime mínimo.",note:"Migração heterogênea (ex: Oracle → Aurora) usa o Schema Conversion Tool (SCT) junto com o DMS pra converter o schema antes."},
+  {d:"d2",t:"concept",s:"dr",q:"Snowball, Snowcone e Snowmobile — o que diferencia a Snow Family?",a:"Dispositivos físicos pra transferir grandes volumes de dados offline quando a rede é lenta ou cara demais.",note:"Snowcone = pequeno/edge. Snowball = terabytes, uso comum. Snowmobile = petabytes, um caminhão literal. Sinal na prova: 'sem internet suficiente para mover X TB'."},
+  {d:"d2",t:"concept",s:"dr",q:"AWS Application Migration Service (MGN) — pra que serve?",a:"Lift-and-shift de servidores físicos ou virtuais (on-prem ou outra cloud) pra EC2, com replicação contínua até o cutover.",note:"É o sucessor do CloudEndure. Se a questão pede 'migrar servidor inteiro sem reescrever aplicação', é MGN."},
+  {d:"d2",t:"concept",s:"dr",q:"AWS Backup — o que ele centraliza?",a:"Backup automatizado e políticas de retenção across EBS, RDS, DynamoDB, EFS, EC2, entre outros, num único lugar.",note:"Sem AWS Backup você configuraria backup serviço por serviço. Útil quando a questão pede 'política de backup unificada e auditável'."},
+  {d:"d2",t:"concept",s:"dr",q:"AWS DataSync — quando usar em vez do DMS ou Snow Family?",a:"Transferência online e recorrente de arquivos entre on-prem (NFS/SMB) e S3/EFS/FSx, com rede disponível.",note:"Tem rede boa e quer sincronizar continuamente → DataSync. Não tem rede suficiente → Snow Family. É banco de dados → DMS."},
 
   // ---------- D3 PERFORMANCE (24%) ----------
   {d:"d3",t:"scenario",s:"serverless",q:"Processar um arquivo assim que ele chega no S3, sem servidor, execução curta.",a:"Lambda (trigger de evento S3).",note:"Event-driven + efêmero + <15min = Lambda. Se fosse processamento longo/contínuo, seria EC2/Fargate/Batch."},
@@ -269,6 +284,14 @@ const CARDS = [
   {d:"d3",t:"concept",s:"s3",q:"Acelerar upload de usuários distantes pro S3.",a:"S3 Transfer Acceleration.",note:"Usa a rede de edge do CloudFront pra entrar mais rápido no S3. Pra download global é o CloudFront."},
   {d:"d3",t:"scenario",s:"messaging",q:"Ingestão de streaming em tempo real (clickstream, telemetria) em larga escala.",a:"Amazon Kinesis (Data Streams).",note:"Streaming ordenado e escalável. Se a questão fala 'real-time, milhões de eventos, ordem', pensa Kinesis."},
   {d:"d3",t:"concept",s:"containers",q:"Rodar containers sem gerenciar EC2.",a:"AWS Fargate (com ECS ou EKS).",note:"Serverless de container. Você paga por task, não por nó. 'Sem gerenciar a infra de nós' = Fargate."},
+  {d:"d3",t:"concept",s:"serverless",q:"Partition key mal escolhida no DynamoDB — qual o sintoma?",a:"Hot partition: uma partição recebe tráfego desproporcional e sofre throttling mesmo com capacidade sobrando no total.",note:"trap|A prova testa isso com 'poucos itens super acessados' (ex: ID sequencial ou data). Solução: chave com alta cardinalidade/distribuição, ou sharding manual."},
+  {d:"d3",t:"concept",s:"serverless",q:"GSI vs LSI no DynamoDB.",a:"GSI (Global Secondary Index): partition key diferente da tabela, pode ser criado depois, capacidade própria. LSI (Local): mesma partition key, sort key diferente, só na criação da tabela.",note:"Se a questão pede consulta por um atributo totalmente diferente da PK → GSI. LSI é mais restrito e raramente a resposta certa."},
+  {d:"d3",t:"concept",s:"serverless",q:"DynamoDB On-Demand vs Provisioned — quando cada um?",a:"On-Demand: tráfego imprevisível, paga por requisição. Provisioned (+ Auto Scaling): tráfego previsível/estável, mais barato em escala.",note:"'Não sabemos o padrão de tráfego' ou 'picos imprevisíveis' → On-Demand. É o Intelligent-Tiering do DynamoDB, mentalmente."},
+  {d:"d3",t:"concept",s:"analytics",q:"Kinesis Data Streams vs Data Firehose — a diferença central.",a:"Data Streams: você escreve o consumidor, retém dados e processa em tempo real (custom). Firehose: totalmente gerenciado, entrega automática pra S3/Redshift/OpenSearch, quase sem código.",note:"trap|Precisa processar/transformar em tempo real com lógica própria → Streams. Só quer carregar dados num destino sem gerenciar consumidor → Firehose."},
+  {d:"d3",t:"concept",s:"analytics",q:"Amazon Athena — o que resolve?",a:"Consultas SQL ad-hoc direto em arquivos no S3, sem servidor e sem carregar dados em banco nenhum.",note:"Paga por dado escaneado. Combine com Glue Data Catalog pra schema e com formatos colunares (Parquet) pra economizar."},
+  {d:"d3",t:"concept",s:"analytics",q:"AWS Glue — qual o papel dele no pipeline de dados?",a:"ETL serverless (extrai, transforma, carrega) + Data Catalog (metadados/schema compartilhado entre Athena, Redshift Spectrum, EMR).",note:"Se a questão menciona 'catalogar schema de dados no S3 pra várias ferramentas consultarem', é o Glue Data Catalog."},
+  {d:"d3",t:"concept",s:"analytics",q:"Redshift — pra que serve e quando não é a resposta?",a:"Data warehouse colunar pra OLAP e BI em larga escala (petabytes), consultas analíticas complexas.",note:"Não é OLTP nem substitui RDS. Se o cenário é 'dashboard de BI sobre anos de dados históricos', pense Redshift; transação do dia a dia é RDS/DynamoDB."},
+  {d:"d3",t:"concept",s:"ml",q:"Amazon SageMaker — o que cobre?",a:"Plataforma completa pra construir, treinar e implantar modelos de machine learning próprios.",note:"Se o cenário quer um modelo customizado/treinado com dados próprios, é SageMaker. Serviços prontos (sem treinar nada) são Rekognition, Comprehend, Textract etc."},
 
   // ---------- D4 COST (20%) ----------
   {d:"d4",t:"concept",s:"ec2",q:"Os 4 modelos de preço de EC2.",a:"On-Demand (flexível, caro), Reserved (1/3 anos, steady-state), Spot (até 90% off, interrompível), Savings Plans (commit de $/h, flexível).",note:"trap|'Workload 24/7 previsível' → Reserved/Savings Plans. 'Batch tolerante a interrupção' → Spot. 'Imprevisível/curto' → On-Demand."},
@@ -279,6 +302,8 @@ const CARDS = [
   {d:"d4",t:"concept",s:"s3",q:"Automatizar a transição de objetos S3 entre classes.",a:"S3 Lifecycle Policies.",note:"Regra: depois de N dias vai pra IA, depois pra Glacier, depois expira. Custo cai sem intervenção manual."},
   {d:"d4",t:"concept",s:"vpc",q:"Reduzir custo de dados saindo da VPC pra S3/DynamoDB.",a:"Gateway VPC Endpoint (evita NAT Gateway).",note:"Tráfego pra S3 via NAT Gateway custa por GB. Gateway endpoint é grátis e tira esse custo de transferência. Pega muita gente."},
   {d:"d4",t:"concept",s:"monitoring",q:"Onde ver recomendações de economia, segurança e limites?",a:"AWS Trusted Advisor.",note:"Checks de cost optimization, security, fault tolerance, limits. Cost Explorer = análise/gráfico de gasto. Budgets = alerta de teto."},
+  {d:"d4",t:"concept",s:"governance",q:"Cost Explorer vs AWS Budgets — qual a diferença de uso?",a:"Cost Explorer analisa e visualiza gastos passados/tendências. Budgets alerta quando o gasto (ou uso) ultrapassa um limite definido.",note:"'Quero ser avisado antes de estourar o orçamento' → Budgets. 'Quero entender onde gastei mais no trimestre passado' → Cost Explorer."},
+  {d:"d4",t:"concept",s:"governance",q:"AWS Compute Optimizer — o que recomenda?",a:"Right-sizing: tipos de instância EC2, configuração de Lambda e volumes EBS mais adequados ao uso real, baseado em ML.",note:"Diferente do Trusted Advisor (checks gerais), o Compute Optimizer é focado e mais profundo em dimensionamento de compute."},
 ];
 
 /* ---------------- Persistence (localStorage, with in-memory fallback) ---------------- */
